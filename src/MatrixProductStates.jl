@@ -25,10 +25,6 @@ Base.@irrational SQRT_HALF 0.7071067811865475244008  sqrt(big(0.5))
 randn(rng::AbstractRNG, ::Type{Complex{T}}) where {T<:AbstractFloat} =
     Complex{T}(SQRT_HALF*randn(rng, T), SQRT_HALF*randn(rng, T))
 
-
-include("svdecon.jl")
-#include("mps_base_tensor_operations.jl")
-
 include("mps_base.jl")
 include("constructors.jl")
 include("compression.jl")
