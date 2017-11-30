@@ -49,12 +49,6 @@ function mpsdims(mps)
 
 end
 
-
-
-
-
-
-
 function diffMP(mps1,mps2)
 
     n = length(mps2);

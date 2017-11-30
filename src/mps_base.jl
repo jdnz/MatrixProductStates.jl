@@ -353,7 +353,7 @@ end
 """
 local operator expectation value assuming mixed conjugation
 """
-function local_exp(A0,A,O)
+function local_exp(A0, A, O)
 
     a1, d, a3 = size(A)
     Ap = reshape(permutedims(A, [2, 1, 3]), d, a1*a3)

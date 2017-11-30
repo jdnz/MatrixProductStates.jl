@@ -17,7 +17,7 @@ f(t) = f_amp # time envelope of pump beam
 const dt = 0.02 # time step
 const t_fin = 200.0 # final time
 const d = 2 # dimension of atom Hilbert space
-const d_max = 100 # maximum bond dimension
+const d_max = 200 # maximum bond dimension
 const measure_int = 5 # number of time steps per observable measurement
 
 const path_data = "/home/jdouglas/data/" # save directory
@@ -246,9 +246,9 @@ end
 
 function construct_L_spin_model(::Type{TN}, ::Type{TA}, con, delt, time) where {TN, TA}
 
-    drj = diff(rj)
     LMPO = Array{TA{TN, 4}, 1}(na)
 
+    drj = diff(rj)
     ph = exp.(im*k_wg*drj)
     cp = sqrt.(delt*gam_1d/2)
 

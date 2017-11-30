@@ -75,6 +75,35 @@ function mpsgroundstate(::Type{TN}, ::Type{TA}, na, dmax, d) where {TN, TA}
 end
 
 
+mpsgroundstate(na, dmax, d::Array) = 
+    mpsgroundstate(Complex{Float64}, Array, na, dmax, d)
+
+function mpsgroundstate(::Type{TN}, ::Type{TA}, na, dmax, d::Array) where {TN, TA}
+
+    mps = Array{TA{TN, 3}, 1}(na)
+    dims = ones(Int64, na + 1)
+    dims[2:na] = dmax
+    r = ones(TN, 1, 1)
+
+    for n = 1:(na - 1)
+        
+        dims[n + 1] = min(dims[n]*d[n], dims[n + 1])
+        dims[na + 1 - n] = min(dims[na + 2 - n]*d[na + 1 - n], dims[na + 1 - n])
+        mps_site = zeros(TN, dims[n], d[n], dims[n + 1])
+        mps_site[1, 1, 1] = one(TN)
+        mps_site = prod_LR(r, mps_site)
+        mps[n], r = leftorth(mps_site)
+
+    end
+
+    mps_site = zeros(TN, dims[na], d[na], dims[na + 1])
+    mps_site[1, 1, 1] = one(TN)
+    mps[na] = prod_LR(r, mps_site)
+
+    return mps, dims
+
+end
+
 """
 make random left orthonormalized MPS
 """
