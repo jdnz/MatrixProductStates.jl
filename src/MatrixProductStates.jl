@@ -131,6 +131,22 @@ function apply_site_MPOtoMPS(ms,mo)
 
 end
 
+function apply_site_operator!(mps_site, op)
+
+    m1, m2, m3 = size(mps_site)
+    temp_site = reshape(permutedims(mps_site, (2, 1, 3)), m2, m1*m3)
+    temp_site = op*temp_site
+    temp_site = permutedims(reshape(temp_site, m2, m1, m3), (2, 1, 3))
+    copy!(mps_site, temp_site)
+
+end
+
+function apply_site_operator_to!(mps_site, op)
+
+    @tensor mps_site[-1, -2, -3] = mps_site[-1, 1, -3]*op[-2, 1]
+
+end
+
 """
 product of state and local operator with left and right environments operators
 """
