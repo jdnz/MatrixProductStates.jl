@@ -12,6 +12,7 @@ export compress_var_two_site, compress_var_apply_H_two_site, compress_sum_var_tw
 export compress_sum_var_apply_H_two_site, RK4stp_apply_H_half_two_site, RK4stp_apply_H_half_full_two_site
 export ground_state_search_full, expandMPS, mpsdims, normMPS, local_exp
 export normalize_lo!, norm_lo, conj_site_mpo, conj_mpo, scal_prod_no_conj, scal_op_prod
+export apply_site_opertaor!
 
 using TensorOperations
 using LinearMaps
