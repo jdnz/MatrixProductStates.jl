@@ -48,13 +48,13 @@ function time_evolve()
     A, dims = mpsproductstate(TN, TA, na, d_max, d, [0, 1])
 
     # create jump and measurement operators
-	jumpleft = makempo(TN, TA, [jj->id jj->im*sqrt(gam_1d[jj]/2)*exp(im*k_wg*rj[jj])*hge;
-        				        jj->0 jj->id], na, d)
-	jumpright = makempo(TN, TA, [jj->id jj->im*sqrt(gam_1d[jj]/2)*exp(-im*k_wg*rj[jj])*hge;
-                		         jj->0 jj->id], na, d)
+    jumpleft = makempo(TN, TA, [jj->id jj->im*sqrt(gam_1d[jj]/2)*exp(im*k_wg*rj[jj])*hge;
+                                jj->0 jj->id], na, d)
+    jumpright = makempo(TN, TA, [jj->id jj->im*sqrt(gam_1d[jj]/2)*exp(-im*k_wg*rj[jj])*hge;
+                                 jj->0 jj->id], na, d)
     jumpright[1][1, :, 2, :] = f(0.0)*id + im*sqrt(gam_1d[1]/2)*exp(-im*k_wg*rj[1])*hge
-	ir_mpo = applyMPOtoMPO(jumpright, conj_mpo(jumpright))
-	ir2_mpo = applyMPOtoMPO(applyMPOtoMPO(jumpright, ir_mpo), conj_mpo(jumpright))
+    ir_mpo = applyMPOtoMPO(jumpright, conj_mpo(jumpright))
+    ir2_mpo = applyMPOtoMPO(applyMPOtoMPO(jumpright, ir_mpo), conj_mpo(jumpright))
 
     # step times and measurement times
     t = 0.0:dt:t_fin
@@ -81,7 +81,7 @@ function time_evolve()
     I2_r[1] = scal_op_prod(A, ir2_mpo, A)
     measure_excitations!((@view e_pop[:, 1]), A)
 	
-	# temporary arrays for time evolution
+    # temporary arrays for time evolution
     envop = build_env(TN, TA, dims, dims, ones(na + 1)*4)
     envop_jump = build_env(TN, TA, dims, dims, ones(na + 1)*2)
     env1 = build_env(TN, TA, dims, dims)
@@ -101,10 +101,10 @@ function time_evolve()
     A2 .= copy.(A)
     A3 .= copy.(A)
 
-	# random jump variables
-	srand(setrand)
-	r1 = rand(tstep)
-	r2 = rand(tstep)
+    # random jump variables
+    srand(setrand)
+    r1 = rand(tstep)
+    r2 = rand(tstep)
 
     # create linear evolution MPO at initial time
     H1 = sm_hamiltonian(TN, TA, 1, dt/2, t[1])
@@ -209,7 +209,7 @@ function time_evolve()
 	end
 
     # saving final data
-	write_data_file(string(base_filename, ".mat"),
+    write_data_file(string(base_filename, ".mat"),
                            t_m, e_pop, p_coh, p_acc, p_sum, I_r,
                            I2_r, cont, t_r, t_l, t_eg, A, times)
 
@@ -234,17 +234,17 @@ end
 # with con = 1 and delt = dt creates the linear time evolution operator 1 - im*dt*H
 function sm_hamiltonian(::Type{TN}, ::Type{TA}, con, delt, time) where {TN, TA}
 
-	H = Array{TA{TN, 4}, 1}(na + 1)
-	
-	drj = diff(rj)
-	ph = exp.(im*k_wg*drj)
-	cp = sqrt.(delt*gam_1d/2)
+    H = Array{TA{TN, 4}, 1}(na + 1)
 
-	H[1] = zeros(TN, 1, 2, 4, 2)
-	H[1][1, :, 1, :] = id
-	H[1][1, :, 2, :] = -cp[1]*ph[1]*heg
-	H[1][1, :, 3, :] = -cp[1]*ph[1]*hge
-	H[1][1, :, 4, :] = local_h(1, con, delt, time)
+    drj = diff(rj)
+    ph = exp.(im*k_wg*drj)
+    cp = sqrt.(delt*gam_1d/2)
+
+    H[1] = zeros(TN, 1, 2, 4, 2)
+    H[1][1, :, 1, :] = id
+    H[1][1, :, 2, :] = -cp[1]*ph[1]*heg
+    H[1][1, :, 3, :] = -cp[1]*ph[1]*hge
+    H[1][1, :, 4, :] = local_h(1, con, delt, time)
 
     H[na] = zeros(TN, 4, 2, 1, 2)
     H[na][1, :, 1, :] = id
@@ -253,20 +253,20 @@ function sm_hamiltonian(::Type{TN}, ::Type{TA}, con, delt, time) where {TN, TA}
     H[na][3, :, 1, :] = cp[na]*heg
     H[na][4, :, 1, :] = id
 
-	for jj = 2:(na - 1)
-	    H[jj] = zeros(TN, 4, 2, 4, 2)
-	    H[jj][1, :, 1, :] = id
-	    H[jj][1, :, 2, :] = -cp[jj]*ph[jj]*heg
-	    H[jj][1, :, 3, :] = -cp[jj]*ph[jj]*hge
-	    H[jj][1, :, 4, :] = local_h(jj, con, delt, time)
-	    H[jj][2, :, 4, :] = cp[jj]*hge
-	    H[jj][3, :, 4, :] = cp[jj]*heg
-	    H[jj][2, :, 2, :] = ph[jj]*id
-	    H[jj][3, :, 3, :] = ph[jj]*id
-	    H[jj][4, :, 4, :] = id
-	end
+    for jj = 2:(na - 1)
+        H[jj] = zeros(TN, 4, 2, 4, 2)
+        H[jj][1, :, 1, :] = id
+        H[jj][1, :, 2, :] = -cp[jj]*ph[jj]*heg
+        H[jj][1, :, 3, :] = -cp[jj]*ph[jj]*hge
+        H[jj][1, :, 4, :] = local_h(jj, con, delt, time)
+        H[jj][2, :, 4, :] = cp[jj]*hge
+        H[jj][3, :, 4, :] = cp[jj]*heg
+        H[jj][2, :, 2, :] = ph[jj]*id
+        H[jj][3, :, 3, :] = ph[jj]*id
+        H[jj][4, :, 4, :] = id
+    end
 
-	return H
+    return H
 
 end
 
@@ -286,9 +286,9 @@ end
 # local site Hamiltonian
 function local_h(jj, con, delt, time)
 	
-	con*id/na + delt*((im*del_p - (gam_eg + gam_1d[jj])/2)*hee +
-		im*sqrt(gam_1d[jj]/2)*f(time)*exp(im*k_in*rj[jj])*heg - 
-		(1/(2na))*abs2(f(time))*id)
+    con*id/na + delt*((im*del_p - (gam_eg + gam_1d[jj])/2)*hee +
+        im*sqrt(gam_1d[jj]/2)*f(time)*exp(im*k_in*rj[jj])*heg - 
+        (1/(2na))*abs2(f(time))*id)
 
 end
 
