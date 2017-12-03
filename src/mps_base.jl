@@ -57,7 +57,6 @@ function prod_LR!(A0, L::AbstractArray{<:Number, 3}, R::AbstractArray{<:Number, 
     A0 = reshape(A0, l3, r3*r4)
     Ac_mul_B!(A0, reshape(L, r1*r2, l3), reshape(R, r1*r2, r3*r4))
     #A0 = reshape(A0, l3, r3, r4)
-    #nothing
 
 end
 """
@@ -78,7 +77,6 @@ function prod_LR!(A0, L::AbstractArray{<:Number, 4}, R::AbstractArray{<:Number, 
     A0 = reshape(A0, l1*l2, r3)
     A_mul_B!(A0, reshape(L, l1*l2, l3*l4), reshape(R, l3*l4, r3))
     #A0 = reshape(A0, l1, l2, r3)
-    #nothing
 
 end
 """
@@ -106,7 +104,6 @@ function prod_LR!(A0, L::AbstractArray{<:Number, 2}, R::AbstractArray{<:Number, 
     A0 = reshape(A0, l1, r2*r3)
     A_mul_B!(A0, L, reshape(R, r1, r2*r3))
     #A0 = reshape(A0, l1, r2, r3)
-    #nothing
 
 end
 
@@ -117,7 +114,6 @@ function prod_LR_co!(A0, L::AbstractArray{<:Number, 2}, R::AbstractArray{<:Numbe
     A0 = reshape(A0, l2, r2*r3)
     At_mul_B!(A0, L, reshape(R, r1, r2*r3))
     #A0 = reshape(A0, l2, r2, r3)
-    #nothing
 
 end
 """
@@ -137,7 +133,6 @@ function prod_LR!(A0, L::AbstractArray{<:Number, 3}, R::AbstractArray{<:Number, 
     A0 = reshape(A0, l1*l2, r2)
     A_mul_B!(A0, reshape(L, l1*l2, l3), R)
     #A0 = reshape(A0, l1, l2, r2)
-    #nothing
 
 end
 
@@ -161,7 +156,6 @@ function update_re!(env, A0::AbstractArray{<:Number, 3},
     env = reshape(env, r1*r2, a1)
     A_mul_Bc!(env, reshape(AOR, r1*r2, r3*r4), reshape(A0, a1, r3*r4))
     #env = reshape(env, r1, r2, a1)
-    #nothing
 
 end
 """
@@ -182,7 +176,6 @@ function update_re!(env, A0::AbstractArray{<:Number, 3},
 
     AOR = prod_AOR(A, O, FR)
     update_re!(env, A0, AOR)
-    #nothing
 
 end
 
@@ -202,7 +195,6 @@ function update_renv!(env, A0::AbstractArray{<:Number, 3},
 
     a1, d, a2 = size(A0)
     A_mul_Bc!(env, reshape(AR, size(AR, 1), d*a2), reshape(A0, a1, d*a2))
-    #nothing
 
 end
 
@@ -222,7 +214,6 @@ function update_renv!(env, A0::AbstractArray{<:Number, 3},
 
     AR = prod_LR(A, FR)
     update_renv!(env, A0, AR)
-    #nothing
 
 end
 """
@@ -246,7 +237,6 @@ function update_le!(env, A0::AbstractArray{<:Number, 3},
     env = reshape(env, l3*l4, a3)
     Ac_mul_B!(env, reshape(AOL, l1*l2, l3*l4), reshape(A0, l1*l2, a3))
     #env = reshape(env, l3, l4, a3)
-    #nothing
 
 end
 
@@ -268,7 +258,6 @@ function update_le!(env, A0::AbstractArray{<:Number, 3},
 
     AOL = prod_AOL(A, O, FL)
     update_le!(env, A0, AOL)
-    #nothing
 
 end
 
@@ -288,7 +277,6 @@ function update_lenv!(env, A0::AbstractArray{<:Number, 3},
 
     a1, d, a3 = size(A0)
     Ac_mul_B!(env, reshape(A0, a1*d, a3), reshape(AL, a1*d, size(AL, 3)))
-    #nothing
 
 end
 
@@ -297,7 +285,6 @@ function update_lenv_co!(env, A0::AbstractArray{<:Number, 3},
 
     a1, d, a3 = size(A0)
     At_mul_B!(env, reshape(AL, a1*d, size(AL, 3)), reshape(conj(A0), a1*d, a3))
-    #nothing
 
 end
 """
@@ -316,7 +303,6 @@ function update_lenv!(env, A0::AbstractArray{<:Number, 3},
 
     AL = prod_LR(L, A)
     update_lenv!(env, A0, AL)
-    #nothing
 
 end
 
@@ -325,7 +311,6 @@ function update_lenv_co!(env, A0::AbstractArray{<:Number, 3},
 
     AL = prod_LR_co(L, A)
     update_lenv_co!(env, A0, AL)
-    #nothing
 
 end
 """

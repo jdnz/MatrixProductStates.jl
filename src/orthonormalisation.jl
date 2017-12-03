@@ -81,7 +81,7 @@ function rightorthogonalizeQR!(mpsin)
     for i = n:-1:2
 
         mpsin[i], r = rightorth(mpsin[i])
-        mpsin[i-1] = prod_LR(mpsin[i - 1], r)
+        mpsin[i - 1] = prod_LR(mpsin[i - 1], r)
 
     end
 
