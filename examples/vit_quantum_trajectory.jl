@@ -1,3 +1,7 @@
+# Quantum trajectory simulation of vacuum induced transparency as presented in 
+# Marco T. Manzoni, Darrick E. Chang and James S. Douglas, 
+# Nature Communications 8, 1743 (2017)
+
 using MAT
 using MatrixProductStates
 using TensorOperations
@@ -10,7 +14,7 @@ const gam_1d = 2.0*ones(na) # coupling of probe to each atom
 const gam_eg = 0.5 # eg spontaneous decay rate
 const gam_es = 0.5 # es spontaneous decay rate
 const kappa = 0.03 # cavity decay rate
-const g = 2.0*ones(na) # cavity coupling with each atom
+const g = 4.0*ones(na) # cavity coupling with each atom
 const del_p = 0.0 # detuning of pump beam from eg transition del_p = ωp - ωeg
 const del_c = 0.0 # two-photon detuning of vit transition del_c = ωp - ωc - ωsg
 const k_wg = 0.5*pi # waveguide wavevector
@@ -354,8 +358,8 @@ function vit_hamiltonian(::Type{TN}, ::Type{TA}, con, delt, time) where {TN, TA}
 
 	H[na + 1] = complex(zeros(6, d_c, 1, d_c))
 	H[na + 1][1, :, 1, :] = delt*(im*del_c - kappa/2)*anum
-	H[na + 1][4, :, 1, :] = (-im*delt)*a
-	H[na + 1][5, :, 1, :] = (-im*delt)*a'
+	H[na + 1][4, :, 1, :] = (-im*delt/2)*a
+	H[na + 1][5, :, 1, :] = (-im*delt/2)*a'
 	H[na + 1][6, :, 1, :] = id_c
 
 	return H
