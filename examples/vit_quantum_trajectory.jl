@@ -4,7 +4,6 @@
 
 using MAT
 using MatrixProductStates
-using TensorOperations
 BLAS.set_num_threads(2)
 
 # spin model parameters
@@ -59,22 +58,22 @@ function time_evolve()
     # construct left-canonical initial MPS ground state where the 
     A, dims = mpsgroundstate(TN, TA, na + 1, d_max, [d*ones(na)..., d_c])
 
-    # create measurement operators
+    # create jump and measurement operators
 	jumpleft = Array{TA{TN, 4}, 1}(na + 1)
-	jumpleft[1:na] = makempo(TN, TA, [jj->id jj->im*sqrt(gam_1d[jj]/2)*hge*exp(im*k_wg*rj[jj]);
+	jumpleft[1:na] = makempo(TN, TA, [jj->id jj->im*sqrt(gam_1d[jj]/2)*exp(im*k_wg*rj[jj])*hge;
         				jj->0 jj->id], na, d)
     jumpleft[na + 1] = zeros(TN, 1, d_c, 1, d_c)
     jumpleft[na + 1][1, :, 1, :] = eye(TN, d_c)
 	jumpright = Array{TA{TN, 4}, 1}(na + 1)
-	jumpright[1:na] = makempo(TN, TA, [jj->id jj->im*sqrt(gam_1d[jj]/2)*hge*exp(-im*k_wg*rj[jj]);
+	jumpright[1:na] = makempo(TN, TA, [jj->id jj->im*sqrt(gam_1d[jj]/2)*exp(-im*k_wg*rj[jj])*hge;
                 		jj->0 jj->id], na, d)
     jumpright[na + 1] = zeros(TN, 1, d_c, 1, d_c)
     jumpright[na + 1][1, :, 1, :] = eye(TN, d_c)
-    jumpright[1][1, :, 2, :] = f(0.0)*id + im*sqrt(gam_1d[1]/2)*hge*exp(-im*k_wg*rj[1])
-	IRmpo = applyMPOtoMPO(jumpright, conj_mpo(jumpright))
-	IR2mpo = applyMPOtoMPO(applyMPOtoMPO(jumpright, IRmpo), conj_mpo(jumpright))
+    jumpright[1][1, :, 2, :] = f(0.0)*id + im*sqrt(gam_1d[1]/2)*exp(-im*k_wg*rj[1])*hge
+	ir_mpo = applyMPOtoMPO(jumpright, conj_mpo(jumpright))
+	ir2_mpo = applyMPOtoMPO(applyMPOtoMPO(jumpright, ir_mpo), conj_mpo(jumpright))
 
-    #step times and measurement times
+    # step times and measurement times
     t = 0.0:dt:t_fin
     t_m = t[1:measure_int:end]
     tstep = length(t) - 1
@@ -98,10 +97,11 @@ function time_evolve()
     pos_eg = Float64[]
     t_es = Float64[]
     pos_es = Float64[]
-    cont = zeros(Int64,5)
+    cont = zeros(Int64, 5)
  
-    I_r[1] = abs2(f(t[1]))
-    I2_r[1] = abs2(f(t[1]))^2
+    # initial measurements
+    I_r[1] = scal_op_prod(A, ir_mpo, A)
+    I2_r[1] = scal_op_prod(A, ir2_mpo, A)
     cav_pop[1] = measure_excitations!((@view e_pop[:, 1]), (@view s_pop[:, 1]), A)
 	
 	# temporary arrays for time evolution
@@ -132,22 +132,23 @@ function time_evolve()
         compress_var_apply_H!(A_coh, envop, A, A, expH, 1)
         p_coh[i] = normalize_lo!(A_coh)
         times[i,1] = time() - time_in
+        
+        # coherent evolution or jumps
         if r1[i] < p_coh[i]
             A .= copy.(A_coh)
         else
-            #Update waveguide jump operator
+            # update waveguide jump operator
             jumpright[1][1, :, 2, :] = f(t[i])*id + 
-                    im*sqrt(gam_1d[1]/2)*hge*exp(-im*k_wg*rj[1])
+                    im*sqrt(gam_1d[1]/2)*exp(-im*k_wg*rj[1])*hge
 
-            #Jump probabilities: decay into the waveguide
+            # jump probabilities for decay into the waveguide
             compress_var_apply_H!(A_r, envop_jump, A, A, jumpright, 1)
             p_r = normalize_lo!(A_r)
             compress_var_apply_H!(A_l, envop_jump, A, A, jumpleft, 1)
             p_l = normalize_lo!(A_l)
             
-            #Jump probabilities: decay outside the waveguide
+            # jump probabilities decay outside the waveguide
             cpop = measure_excitations!(epop, spop, A)
-            
             p_acc[i, 1] = 0.0
             for j = 1:na
                 p_acc[i, j + 1] = p_acc[i, j] + dt*gam_eg*epop[j]
@@ -214,16 +215,15 @@ function time_evolve()
                        
             # Output right field update
             jumpright[1][1, :, 2, :] = f(t[i + 1])*id + 
-                    im*sqrt(gam_1d[1]/2)*hge*exp(-im*k_wg*rj[1])
-            
-            IRmpo[1] =  apply_site_MPOtoMPO(jumpright[1], conj_site_mpo(jumpright[1]))
-            IR2mpo[1] =  apply_site_MPOtoMPO(
-                apply_site_MPOtoMPO(jumpright[1], IRmpo[1]),
+                    im*sqrt(gam_1d[1]/2)*exp(-im*k_wg*rj[1])*hge
+            ir_mpo[1] =  apply_site_MPOtoMPO(jumpright[1], conj_site_mpo(jumpright[1]))
+            ir2_mpo[1] =  apply_site_MPOtoMPO(
+                apply_site_MPOtoMPO(jumpright[1], ir_mpo[1]),
                 conj_site_mpo(jumpright[1]))
 
             # Output observables
-            I_r[mind] = scal_op_prod(A, IRmpo, A)
-            I2_r[mind] = scal_op_prod(A, IR2mpo, A)
+            I_r[mind] = scal_op_prod(A, ir_mpo, A)
+            I2_r[mind] = scal_op_prod(A, ir2_mpo, A)
 
             times[i,4] = time() - times[i, 3] - times[i, 2] - times[i, 1] - time_in
 
@@ -248,27 +248,6 @@ function time_evolve()
 
 end
 
-function measure_excitations_old!(e_pop, s_pop, A)
-    
-    #calculates local expectation values, assuming mps is already left normalized
-    Acav = A[end]
-    @tensor rhoR[-1, -2] := Acav[-1, 3, 1]*conj(Acav[-2, 3, 1]) 
-   
-    for n = na:(-1):1
-        # Compute excit(n) and s_pop(n) from A[n], conj(A[n]), rhoR, O[n] and rhoR[n+1]
-        An = A[n]
-        @tensor ep = scalar(rhoR[3, 5]*An[1, 2, 3]*hee[4, 2]*conj(An[1, 4, 5]))
-        e_pop[n] = real(ep)
-        @tensor sp = scalar(rhoR[3, 5]*An[1, 2, 3]*hss[4, 2]*conj(An[1, 4, 5]))
-        s_pop[n] = real(sp)
-        # Update rhoR from A[n], conj(A[n]) and the previous rhoR 
-        @tensor rhoR[-1, -2] := rhoR[1, 2]*An[-1, 3, 1]*conj(An[-2, 3, 2]) 
-    end
-
-    cav_pop = local_exp(Acav, Acav, anum)
-    
-end
-
 # calculate local expectation values, assuming mps is already left normalized
 function measure_excitations!(e_pop, s_pop, A)
     
@@ -279,36 +258,15 @@ function measure_excitations!(e_pop, s_pop, A)
 
     # sweep left taking expectation value
     for n = na:(-1):1
-        # Compute excit(n) and s_pop(n) from A[n], conj(A[n]), rhoR, O[n] and rhoR[n+1]
         Aenv = prod_LR(A[n], env)
         e_pop[n] = real(local_exp(Aenv, A[n], hee))
         s_pop[n] = real(local_exp(Aenv, A[n], hss))
-        # Update rhoR from A[n], conj(A[n]) and the previous rhoR 
         env = update_renv(A[n], Aenv)
     end
 
     cav_pop = real(local_exp(Acav, Acav, anum))
     
 end
-
-# calculate local expectation values, assuming mps is already left normalized
-function measure_excitations_qr!(e_pop, s_pop, A)
-    
-    Acav = A[end]
-    Acan = Acav
-    # sweep left taking expectation value
-    for n = na:(-1):1
-        # Compute excit(n) and s_pop(n) from A[n], conj(A[n]), rhoR, O[n] and rhoR[n+1]
-        _, r = rightorth(Acan)
-        Acan = prod_LR(A[n], r)
-        e_pop[n] = real(local_exp(Acan, Acan, hee))
-        s_pop[n] = real(local_exp(Acan, Acan, hss))
-    end
-
-    cav_pop = real(local_exp(Acav, Acav, anum))
-    
-end
-
 
 # creates VIT hamiltonian when con = 0 and delt = 1
 # with con = 1 and delt = dt creates the linear time evolution operator 1 - im*dt*H
