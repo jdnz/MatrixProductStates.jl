@@ -19,7 +19,7 @@ const k_in = k_wg
 const gam_exp = 2*pi*6.065e6
 const f_amp_exp = sqrt.([0.0589,0.0721,0.0995,0.1637,0.3081,0.6395,1.2121,1.8898, 
     2.6039,4.2050,7.1291,10.4823,17.0816,27.1592,42.8378,71.7874]/gam_exp/1e-6)
-const f_amp = f_amp_exp[12]
+const f_amp = f_amp_exp[1]
 
 #Rydberg specific parameters
 const om = 10.0/6.065/2.0
@@ -87,7 +87,7 @@ const d_max = 10
 const measure_int = 5
 const path_data = "/home/jdouglas/data/" # save directory
 const base_filename = string(path_data, "Ryd_Jumps_N", na, "_D", d_max,
-    "_Tf", t_fin, "_f", round(f_amp, 3), "_dt", dt, "_three_exp")
+    "_Tf", t_fin, "_f", round(f_amp, 3), "_dt", dt, "_traj", setrand)
 
 # envelope of input pulse
 function f(t)
