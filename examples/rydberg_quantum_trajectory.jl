@@ -7,8 +7,8 @@ const na = 70
 const od = 33
 const ad = 2.5*60/na #atomic distance in micro m
 const cloud_sig = 23.6344/ad
-const gam_1d = exp.(-((1:na)-(na+1)/2).^2/2/cloud_sig^2)
-const gam_1d = gam_1d/sum(gam_1d)/2*od
+const cloud_coup = exp.(-((1:na)-(na+1)/2).^2/2/cloud_sig^2)
+const gam_1d = cloud_coup/sum(cloud_coup)/2*od
 const gam_eg = 1.0
 const del_p = 0.0
 const k_wg = 0.5*pi 
@@ -355,7 +355,7 @@ function write_data_file(filename, t, t_m, e_pop, s_pop, p_coh, p_acc,
     write(file, "e_pop", e_pop)
     write(file, "s_pop", s_pop)
     write(file, "p_coh", p_coh)
-    write(file, "p_acc", p_acc)
+#    write(file, "p_acc", p_acc)
     write(file, "p_sum", p_sum)
     write(file, "I_r", I_r)
     write(file, "I2_r", I2_r)
