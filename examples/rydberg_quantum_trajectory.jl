@@ -92,22 +92,7 @@ const base_filename = string(path_data, "Ryd_Jumps_N", na, "_D", d_max,
 # envelope of input pulse
 function f(t)
 
-    trise = 0.8e-6*gam_exp
-    tup = 2e-6*gam_exp
-
-    if t < 0
-        envelope = 0.0
-    elseif t < trise
-        envelope = (1.0 + cos(pi*(t - trise)/trise))/2
-    elseif t <= tup + trise
-        envelope = 1.0
-    elseif t <= 2*trise + tup
-        envelope = (1.0 + cos(pi*(t - tup - trise)/trise))/2
-    else
-        envelope = 0.0
-    end
-
-    f_amp*sqrt(envelope)
+   f_amp
 
 end
 

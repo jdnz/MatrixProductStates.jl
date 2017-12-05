@@ -200,8 +200,6 @@ function time_evolve()
                         e_pop_jl, g_pop, nex, tr_rho, E_r, E_p, I_r,
                         I2_r, I_l, I2_l, rho, times)
 
-    return rho
-
 end
 
 function write_data_file(filename, t_m, e_pop, e_pop_jl, g_pop, nex,
