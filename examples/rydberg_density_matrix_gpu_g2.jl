@@ -1,7 +1,7 @@
 using MAT
 using CuArrays
 using MatrixProductStates
-BLAS.set_num_threads(2)
+BLAS.set_num_threads(nworkers())
 
 #Spin model parameters
 const na = 60 # number of atoms
