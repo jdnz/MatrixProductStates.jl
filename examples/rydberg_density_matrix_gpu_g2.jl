@@ -81,7 +81,7 @@ const t_fin = 1.0
 const d = 3
 const d_max = 180
 const measure_int = 5
-const path_data = "/home/jdouglas/data/"
+const path_data = string(homedir(), "/data/")
 const base_filename = string(path_data, "Ryd_Dens_N", na, "_D", d_max,
     "_Tf", t_fin, "_f", round(f_amp, 3), "_dt", dt, "_three_exp_gpu_proj")
 const g2_filename = string(base_filename, "_g2")
