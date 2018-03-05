@@ -1,9 +1,10 @@
 using MAT
+using CuArrays
 using MatrixProductStates
 BLAS.set_num_threads(2)
 
 #Spin model parameters
-const na = 70 # number of atoms
+const na = 60 # number of atoms
 const od = 33 # optical depth of cloud
 const ad = 2.5*60/na #atomic distance in micro m
 const cloud_sig = 23.6344/ad # cloud length
@@ -15,9 +16,8 @@ const k_wg = 0.5*pi # waveguide wavevector
 const rj = collect(1.0:na) #sort!(rand(na)*na) # atom positions
 const k_in = k_wg # pump beam wavevector 
 const gam_exp = 2*pi*6.065e6 # spontaneous emmision rate
-const f_amp_exp = sqrt.([0.0589,0.0721,0.0995,0.1637,0.3081,0.6395,1.2121,1.8898, 
-    2.6039,4.2050,7.1291,10.4823,17.0816,27.1592,42.8378,71.7874]/gam_exp/1e-6)
-const f_amp = f_amp_exp[12]
+const f_amp_exp = sqrt.([0.3657, 2.9549, 7.7137, 10.0961]/gam_exp/1e-6)
+const f_amp = f_amp_exp[3]
 
 #Rydberg specific parameters
 const om = 10.0/6.065/2.0 # control beam Rabi frequency
@@ -25,8 +25,8 @@ const k_c = 0.0 # control wavevector
 const del_s = 0.0 # two photon detuning from s level
 
 # rmax = 20 na = 70 
-uu = [524.328+89.9671im, 524.328-89.9671im, 649.737+219.429im, 649.737-219.429im, 488.928]
-lam = [-0.228929 + 0.189648im, -0.228929 - 0.189648im, 0.146279+0.297638im, 0.146279-0.297638im, 0.480032] 
+#const uu = [524.328+89.9671im, 524.328-89.9671im, 649.737+219.429im, 649.737-219.429im, 488.928]
+#const lam = [-0.228929 + 0.189648im, -0.228929 - 0.189648im, 0.146279+0.297638im, 0.146279-0.297638im, 0.480032] 
 
 # rmax = 30 na = 60 
 #uu = [1055.32, 1156.39 + 264.599im, 1156.39 - 264.599im, 781.661]
@@ -37,8 +37,8 @@ lam = [-0.228929 + 0.189648im, -0.228929 - 0.189648im, 0.146279+0.297638im, 0.14
 #lam = [-0.0606795, 0.0112804 + 0.0784944im, 0.0112804 - 0.0784944im, 0.246432, 0.48336, 0.720283]
 
 # rmax = 20 na = 60 
-#const uu = [0.704528 + 135.691im, 0.704528 - 135.691im, 225.917]
-#const lam = [0.226209 + 0.32374im, 0.226209 - 0.32374im, 0.475997]
+const uu = [0.704528 + 135.691im, 0.704528 - 135.691im, 225.917]
+const lam = [0.226209 + 0.32374im, 0.226209 - 0.32374im, 0.475997]
 
 #uu = [ 2255.07, 686.082 + 91.2384im, 686.082 - 91.2384im, 477.07]
 #lam = [-0.0998312, 0.0646318 + 0.25377im, 0.0646318-0.25377im, 0.424938]
@@ -72,38 +72,24 @@ lam = [-0.228929 + 0.189648im, -0.228929 - 0.189648im, 0.146279+0.297638im, 0.14
 
 # pure dephasing
 const gam_gg = 0.0
-const gam_ss = 40e3/6.065e6
+const gam_ss = 120e3/6.065e6
 const gam_ee = 0.0
 
 # simulation parameters
 const dt = 0.01
-const t_fin = 60.0
+const t_fin = 1.0
 const d = 3
-const d_max = 100
+const d_max = 180
 const measure_int = 5
 const path_data = "/home/jdouglas/data/"
 const base_filename = string(path_data, "Ryd_Dens_N", na, "_D", d_max,
-    "_Tf", t_fin, "_f", round(f_amp, 3), "_dt", dt, "_five_exp")
+    "_Tf", t_fin, "_f", round(f_amp, 3), "_dt", dt, "_three_exp_gpu_proj")
+const g2_filename = string(base_filename, "_g2")
 
 # input pulse envelope
 function f(t)
 
-    trise = 0.8e-6*gam_exp
-    tup = 2e-6*gam_exp
-
-    if t < 0
-        envelope = 0.0
-    elseif t < trise
-        envelope = (1.0 + cos(pi*(t - trise)/trise))/2
-    elseif t <= tup + trise
-        envelope = 1.0
-    elseif t <= 2*trise + tup
-        envelope = (1.0 + cos(pi*(t - tup - trise)/trise))/2
-    else
-        envelope = 0.0
-    end
-
-    f_amp*sqrt(envelope)
+    f_amp
 
 end
 
@@ -118,8 +104,8 @@ const hse = hes'
 const id = eye(3)
 
 # types used in mps representation
-const TN = Complex{Float64}
-const TA = Array
+const TN = Complex{Float32}
+const TA = CuArray
 
 
 function time_evolve()
@@ -129,26 +115,22 @@ function time_evolve()
 
     #Create measurement operators
     IDlmps = makemps(TN, TA, [jj->id[:]], na, d^2)
-    ELmpo = makempo(TN, TA, [jj->id jj->im*sqrt(gam_1d[jj]/2)*exp(im*k_wg*rj[jj])*hge;
-                             jj->0 jj->id], na, d)
-    ILmpo = applyMPOtoMPO(ELmpo, conj_mpo(ELmpo))
-    ILlmps = mpo_to_mps(TN, TA, ILmpo)
-    IL2mpo = applyMPOtoMPO(applyMPOtoMPO(ELmpo, ILmpo), conj_mpo(ELmpo))
-    IL2lmps = mpo_to_mps(TN, TA, IL2mpo)
-    NEmpo = makempo(TN, TA, [jj->id jj->hee; jj->0 jj->id], na, d)
-    NElmps = mpo_to_mps(TN, TA, NEmpo)
-    NSmpo = makempo(TN, TA, [jj->id jj->hss; jj->0 jj->id], na, d)
-    NSlmps = mpo_to_mps(TN, TA, NSmpo)
     ERmpo = makempo(TN, TA, [jj->id jj->im*sqrt(gam_1d[jj]/2)*exp(-im*k_wg*rj[jj])*hge;
                              jj->0 jj->id], na, d)
     ERmpo[1][1, :, 2, :] = f(0.0)*id + im*sqrt(gam_1d[1]/2)*exp(-im*k_wg*rj[1])*hge
     IRmpo = applyMPOtoMPO(ERmpo, conj_mpo(ERmpo))
-    IR2mpo = applyMPOtoMPO(applyMPOtoMPO(ERmpo, IRmpo), conj_mpo(ERmpo))
     IRlmps = mpo_to_mps(TN, TA, IRmpo)
-    IR2lmps = mpo_to_mps(TN, TA, IR2mpo)
-  
+    ERProj = makempo(TN, TA, [jj->kron(id,id) jj->im*sqrt(gam_1d[jj]/2)*exp(-im*k_wg*rj[jj])*kron(hge, id) jj->-im*sqrt(gam_1d[jj]/2)*exp(im*k_wg*rj[jj])*kron(id, hge) jj->gam_1d[jj]/2*kron(hge, hge);
+                      jj->0 jj->kron(id, id)  jj->0            jj->-im*sqrt(gam_1d[jj]/2)*exp(im*k_wg*rj[jj])*kron(id, hge);
+                      jj->0 jj->0             jj->kron(id, id) jj->im*sqrt(gam_1d[jj]/2)*exp(-im*k_wg*rj[jj])*kron(hge, id);
+                      jj->0 jj->0             jj->0            jj->kron(id, id)], na, d^2)
+    ERProj[1][1, :, 2, :] = f_amp*kron(id, id) + im*sqrt(gam_1d[1]/2)*exp(-im*k_wg*rj[1])*kron(hge, id)
+    ERProj[1][1, :, 3, :] = f_amp*kron(id, id) - im*sqrt(gam_1d[1]/2)*exp(im*k_wg*rj[1])*kron(id, hge)
+    ERProj[1][1, :, 4, :] = gam_1d[1]/2*kron(hge, hge) + abs2(f_amp)*kron(id, id) + 
+          im*f_amp*sqrt(gam_1d[1]/2)*exp(-im*k_wg*rj[1])*kron(hge, id) - 
+          im*f_amp*sqrt(gam_1d[1]/2)*exp(im*k_wg*rj[1])*kron(id, hge)
+
     dims = mpsdims(rho)
-    svd_tol = 1e-9
 
     # step times and measurement times
     t = 0.0:dt:t_fin
@@ -157,26 +139,11 @@ function time_evolve()
 
     # preallocating measurement arrays
     tr_rho = zeros(TN, length(t_m))
-    e_pop = zeros(TN, length(t_m))
-    s_pop = zeros(TN, length(t_m))
-    e_pop_j = zeros(TN, na, length(t_m))
-    s_pop_j = zeros(TN, na, length(t_m))
-    dims_j = zeros(Int64, length(dims), length(t_m))
     I_r = zeros(TN, length(t_m))
-    I2_r = zeros(TN, length(t_m))
-    I_l = zeros(TN, length(t_m))
-    I2_l = zeros(TN, length(t_m))
     
     # initial measurements
-    e_pop[1] = scal_prod_no_conj(NElmps, rho)
-    s_pop[1] = scal_prod_no_conj(NSlmps, rho)
-    measure_excitations!(rho, (@view e_pop_j[:, 1]), IDlmps, hee[:])
-    measure_excitations!(rho, (@view s_pop_j[:, 1]), IDlmps, hss[:])
     tr_rho[1] = scal_prod_no_conj(IDlmps, rho)
     I_r[1] = scal_prod_no_conj(IRlmps, rho)
-    I2_r[1] = scal_prod_no_conj(IR2lmps, rho)
-    I_l[1] = scal_prod_no_conj(ILlmps, rho)
-    I2_l[1] = scal_prod_no_conj(IL2lmps, rho)
     times = zeros(tstep, 4)
 
     # temporary arrays for time evolution
@@ -191,6 +158,7 @@ function time_evolve()
     env2 = build_env(TN, TA, dims, dims)
     env3 = build_env(TN, TA, dims, dims)
     envop = build_env(TN, TA, dims, dims, ones(na + 1)*mpo_size)
+    envproj = build_env(TN, TA, dims, dims, ones(na + 1)*4)
 
     # time evolution operators for Runge Kutta algorithm
     L1 = construct_L_Ryd(TN, TA, 1, dt/2, t[1])
@@ -203,17 +171,12 @@ function time_evolve()
     println(typeof(rho))
     println(typeof(env1))
     println(typeof(envop))
+    println(typeof(ERProj))
 
     # time evolution
     for i = 1:tstep
         time_in = time()
         
-        # update time-evolution operator
-        update_L_Ryd!(L1, 1, dt/2, t[i])
-        update_L_Ryd!(L2, 0, 1, t[i] + dt/2)
-        update_L_Ryd!(L3, 1, dt/2, t[i + 1])
-        times[i,1] = time() - time_in
-
         # Runge-Kutta 4th order time step
         RK4stp_apply_H_half!(dt, L, rho, rho1, rho2, rho3, env1, env2, env3, envop)
         times[i,2] = time() - times[i,1] - time_in
@@ -221,54 +184,70 @@ function time_evolve()
         # measurements (every measure_int time steps)
         if rem(i, measure_int) == 0
             mind = div(i, measure_int) + 1
-            # atomic state populations
-            e_pop[mind] = scal_prod_no_conj(NElmps, rho)
-            s_pop[mind] = scal_prod_no_conj(NSlmps, rho)
             tr_rho[mind] = scal_prod_no_conj(IDlmps, rho)
-            measure_excitations!(rho, (@view e_pop_j[:, mind]), IDlmps, hee[:])
-            measure_excitations!(rho, (@view s_pop_j[:, mind]), IDlmps, hss[:])
-            # output right field update
-            ERmpo[1][1, :, 2, :] = f(t[i + 1])*id +
-                im*sqrt(gam_1d[1]/2)*exp(-im*k_wg*rj[1])*hge
-            IRupdate =  apply_site_MPOtoMPO(ERmpo[1], conj_site_mpo(ERmpo[1]))
-            IR2update =  apply_site_MPOtoMPO(
-                apply_site_MPOtoMPO(ERmpo[1],IRupdate),
-                conj_site_mpo(ERmpo[1]))
-            IRlmps[1] = mpo_to_mps_site(IRupdate)
-            IR2lmps[1] = mpo_to_mps_site(IR2update)
-            # output field measurement
             I_r[mind] = scal_prod_no_conj(IRlmps, rho)
-            I2_r[mind] = scal_prod_no_conj(IR2lmps, rho)
-            I_l[mind] = scal_prod_no_conj(ILlmps, rho)
-            I2_l[mind] = scal_prod_no_conj(IL2lmps, rho)
             times[i, 3] = time() - times[i, 2] - times[i, 1] - time_in
         end
         
         # saving temp output to file
         if rem(i, measure_int*20) == 0
             write_data_file(string(base_filename, "_temp.mat"), 
-                            i, t_m, e_pop, e_pop_j, s_pop, s_pop_j,
-                            tr_rho, I_r, I2_r, I_l, I2_l, rho, times)
-        end  
-
-        # saving mid pulse output to file
-        if i == 10000
-            write_data_file(string(base_filename, "_mid_pulse.mat"), 
-                            i, t_m, e_pop, e_pop_j, s_pop, s_pop_j,
-                            tr_rho, I_r, I2_r, I_l, I2_l, rho, times)
+                            i, t_m, tr_rho, I_r, rho, times)
         end  
 
     end
 
     # saving final output to file
-    write_data_file(string(base_filename,".mat"), 
-                    tstep, t_m, e_pop, e_pop_j, s_pop, s_pop_j,
-                    tr_rho, I_r, I2_r, I_l, I2_l, rho, times)
+    write_data_file(string(base_filename, ".mat"), 
+                    tstep, t_m, tr_rho, I_r, rho, times)
+
+    # measure photon out
+    #rhotau = mpo_to_mps_dens(TN, TA, 
+    #    applyMPOtoMPO(applyMPOtoMPO(conj_mpo(ERmpo), mps_to_mpo_dens(TN, TA, rho)), ERmpo))
+    #dimstau = mpsdims(rhotau)
+    #env = build_env(TN, TA, dimstau, dims)
+    #compress_var!(rho, rhotau, env, 4)
+    #rhotau = 0
+    #gc()
+    rho1 .= copy.(rho)
+    compress_var_apply_H!(rho, envproj, rho, rho1, ERProj, 4)
+    
+    # initial measurements
+    tr_rho[1] = scal_prod_no_conj(IDlmps, rho)
+    I_r[1] = scal_prod_no_conj(IRlmps, rho)
+    times = zeros(tstep, 4)
+
+    # second time evolution
+    for i = 1:tstep
+        time_in = time()
+        
+        # Runge-Kutta 4th order time step
+        RK4stp_apply_H_half!(dt, L, rho, rho1, rho2, rho3, env1, env2, env3, envop)
+        times[i,2] = time() - times[i,1] - time_in
+        
+        # measurements (every measure_int time steps)
+        if rem(i, measure_int) == 0
+            mind = div(i, measure_int) + 1
+            tr_rho[mind] = scal_prod_no_conj(IDlmps, rho)
+            I_r[mind] = scal_prod_no_conj(IRlmps, rho)
+            times[i, 3] = time() - times[i, 2] - times[i, 1] - time_in
+        end
+        
+        # saving temp output to file
+        if rem(i, measure_int*20) == 0
+            write_data_file(string(g2_filename, "_temp.mat"), 
+                            i, t_m, tr_rho, I_r, rho, times)
+        end  
+
+    end
+
+    # saving final output to file
+    write_data_file(string(g2_filename,".mat"), 
+                    tstep, t_m, tr_rho, I_r, rho, times)
 
 end
 
-function write_data_file(filename, i, t_m, e_pop, e_pop_j, s_pop, s_pop_j,
-                         tr_rho, I_r, I2_r, I_l, I2_l, rho, times)
+function write_data_file(filename, i, t_m, tr_rho, I_r, rho, times)
 
     file = matopen(filename, "w")
     write(file, "TN", string(TN))
@@ -297,15 +276,8 @@ function write_data_file(filename, i, t_m, e_pop, e_pop_j, s_pop, s_pop_j,
 
     write(file, "i_last", i)
     write(file, "t_m", collect(t_m))
-    write(file, "e_pop", e_pop)
-    write(file, "s_pop", s_pop)
-    write(file, "e_pop_j", e_pop_j)
-    write(file, "s_pop_j", s_pop_j)
     write(file, "tr_rho", tr_rho)
     write(file, "I_r", I_r)
-    write(file, "I2_r", I2_r)
-    write(file, "I_l", I_l)
-    write(file, "I2_l", I2_l)
     write(file, "rho", collect.(rho))
     write(file, "times", sum(times, 1))
     close(file)
