@@ -215,32 +215,24 @@ function time_evolve()
         
         # saving temporary file
         if rem(i, measure_int*20) == 0
-            write_data_file(string(base_filename,"_temp.mat"), i, t_m, e_pop,
-                            e_pop_j, s_pop, p_pop, s_pop_j, p_pop_j, tr_rho,
-                            I_r, I2_r, I_l, I2_l, rho, times)
+            write_data_file(string(base_filename,"_temp.mat"), i, t_m, tr_rho, I_r, rho, times)
 
         end  
 
         # saving mid pulse data
         if i == 10000
-            write_data_file(string(base_filename,"_mid_pulse.mat"), i, t_m, e_pop,
-                            e_pop_j, s_pop, p_pop, s_pop_j, p_pop_j, tr_rho,
-                            I_r, I2_r, I_l, I2_l, rho, times)
+            write_data_file(string(base_filename,"_mid_pulse.mat"), i, t_m, tr_rho, I_r, rho, times)
        end  
 
     end
 
     # saving to final data to file
-    write_data_file(string(base_filename,".mat"), tstep, t_m, e_pop,
-                    e_pop_j, s_pop, p_pop, s_pop_j, p_pop_j, tr_rho,
-                    I_r, I2_r, I_l, I2_l, rho, times)
+    write_data_file(string(base_filename,".mat"), tstep, t_m, tr_rho, I_r, rho, times)
 
 
 end
 
-function write_data_file(filename, i, t_m, e_pop, e_pop_j, s_pop, p_pop,
-                         s_pop_j, p_pop_j, tr_rho, I_r, I2_r, I_l, I2_l,
-                         rho, times)
+function write_data_file(filename, i, t_m, tr_rho, I_r, rho, times)
 
     file = matopen(filename, "w")
     write(file, "TN", string(TN))
@@ -271,17 +263,8 @@ function write_data_file(filename, i, t_m, e_pop, e_pop_j, s_pop, p_pop,
 
     write(file, "i_last", i)
     write(file, "t_m", collect(t_m))
-    write(file, "e_pop", e_pop)
-    write(file, "s_pop", s_pop)
-    write(file, "p_pop", p_pop)
-    write(file, "e_pop_j", e_pop_j)
-    write(file, "s_pop_j", s_pop_j)
-    write(file, "p_pop_j", p_pop_j)
     write(file, "tr_rho", tr_rho)
     write(file, "I_r", I_r)
-    write(file, "I2_r", I2_r)
-    write(file, "I_l", I_l)
-    write(file, "I2_l", I2_l)
     write(file, "rho", collect.(rho))
     write(file, "times", sum(times,1))
     close(file)
