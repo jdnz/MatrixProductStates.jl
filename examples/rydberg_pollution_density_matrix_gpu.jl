@@ -139,26 +139,11 @@ function time_evolve()
     
     #Create measurement operators
     IDlmps = makemps(TN, TA, [jj->id[:]], na, d^2)
-    ELmpo = makempo(TN, TA, [jj->id jj->im*sqrt(gam_1d[jj]/2)*exp(im*k_wg*rj[jj])*hge;
-                        jj->0 jj->id], na, d)
-    ILmpo = applyMPOtoMPO(ELmpo, conj_mpo(ELmpo))
-    ILlmps = mpo_to_mps(TN, TA, ILmpo)
-    IL2mpo = applyMPOtoMPO(applyMPOtoMPO(ELmpo, ILmpo), conj_mpo(ELmpo))
-    IL2lmps = mpo_to_mps(TN, TA, IL2mpo)
-    NEmpo = makempo(TN, TA, [jj->id jj->hee; jj->0 jj->id], na, d)
-    NElmps = mpo_to_mps(TN, TA, NEmpo)
-    NSmpo = makempo(TN, TA, [jj->id jj->hss; jj->0 jj->id], na, d)
-    NSlmps = mpo_to_mps(TN, TA, NSmpo)
-    NPmpo = makempo(TN, TA, [jj->id jj->hpp; jj->0 jj->id], na, d)
-    NPlmps = mpo_to_mps(TN, TA, NPmpo)
     ERmpo = makempo(TN, TA, [jj->id jj->im*sqrt(gam_1d[jj]/2)*exp(-im*k_wg*rj[jj])*hge;
                         jj->0 jj->id], na, d)
     ERmpo[1][1, :, 2, :] = f(0.0)*id + im*sqrt(gam_1d[1]/2)*exp(-im*k_wg*rj[1])*hge
     IRmpo = applyMPOtoMPO(ERmpo, conj_mpo(ERmpo))
-    IR2mpo = applyMPOtoMPO(applyMPOtoMPO(ERmpo, IRmpo),
-        conj_mpo(ERmpo))
     IRlmps = mpo_to_mps(TN, TA, IRmpo)
-    IR2lmps = mpo_to_mps(TN, TA, IR2mpo)
 
     #step times and measurement times
     t = 0.0:dt:t_fin
@@ -167,30 +152,12 @@ function time_evolve()
 
     # preallocating measurement arrays
     tr_rho = zeros(TN, length(t_m))
-    e_pop = zeros(TN, length(t_m))
-    s_pop = zeros(TN, length(t_m))
-    p_pop = zeros(TN, length(t_m))
-    e_pop_j = zeros(TN, na, length(t_m))
-    s_pop_j = zeros(TN, na, length(t_m))
-    p_pop_j = zeros(TN, na, length(t_m))
     I_r = zeros(TN, length(t_m))
-    I2_r = zeros(TN, length(t_m))
-    I_l = zeros(TN, length(t_m))
-    I2_l = zeros(TN, length(t_m))
     times = zeros(tstep, 4)
 
     # initial measurements
-    e_pop[1] = scal_prod_no_conj(NElmps, rho)
-    s_pop[1] = scal_prod_no_conj(NSlmps, rho)
-    p_pop[1] = scal_prod_no_conj(NPlmps, rho)
-    measure_excitations!(rho, (@view e_pop_j[:, 1]), IDlmps, hee[:])
-    measure_excitations!(rho, (@view s_pop_j[:, 1]), IDlmps, hss[:])
-    measure_excitations!(rho, (@view p_pop_j[:, 1]), IDlmps, hpp[:])
     tr_rho[1] = scal_prod_no_conj(IDlmps, rho)
     I_r[1] = scal_prod_no_conj(IRlmps, rho)
-    I2_r[1] = scal_prod_no_conj(IR2lmps, rho)
-    I_l[1] = scal_prod_no_conj(ILlmps, rho)
-    I2_l[1] = scal_prod_no_conj(IL2lmps, rho)
 
     # temporary arrays for time evolution
     rho1 = similar(rho)
@@ -217,7 +184,6 @@ function time_evolve()
     println(typeof(env1))
     println(typeof(envop))
 
-
     # time evolution
     for i = 1:tstep
         time_in = time();
@@ -236,28 +202,14 @@ function time_evolve()
         if rem(i, measure_int) == 0
             mind = div(i, measure_int) + 1
             # atomic state populations
-            e_pop[mind] = scal_prod_no_conj(NElmps, rho)
-            s_pop[mind] = scal_prod_no_conj(NSlmps, rho)
-            p_pop[mind] = scal_prod_no_conj(NPlmps, rho)
             tr_rho[mind] = scal_prod_no_conj(IDlmps, rho)
-            measure_excitations!(rho, (@view e_pop_j[:, mind]), IDlmps, hee[:])
-            measure_excitations!(rho, (@view s_pop_j[:, mind]), IDlmps, hss[:])
-            measure_excitations!(rho, (@view p_pop_j[:, mind]), IDlmps, hpp[:])
             # output right field update
             ERmpo[1][1, :, 2, :] = f(t[i + 1])*id +
                 im*sqrt(gam_1d[1]/2)*exp(-im*k_wg*rj[1])*hge
-            IRupdate =  apply_site_MPOtoMPO(ERmpo[1],
-                conj_site_mpo(ERmpo[1]))
-            IR2update =  apply_site_MPOtoMPO(
-                apply_site_MPOtoMPO(ERmpo[1],IRupdate),
-                conj_site_mpo(ERmpo[1]))
+            IRupdate =  apply_site_MPOtoMPO(ERmpo[1], conj_site_mpo(ERmpo[1]))
             IRlmps[1] = mpo_to_mps_site(IRupdate)
-            IR2lmps[1] = mpo_to_mps_site(IR2update)
             # output field measurement
             I_r[mind] = scal_prod_no_conj(IRlmps,rho)
-            I2_r[mind] = scal_prod_no_conj(IR2lmps,rho)
-            I_l[mind] = scal_prod_no_conj(ILlmps,rho)
-            I2_l[mind] = scal_prod_no_conj(IL2lmps,rho)
             times[i, 3] = time() - times[i, 2] - times[i, 1] - time_in
         end
         
