@@ -183,19 +183,19 @@ function qrq!(A::Matrix)
 
 end
 
-function qrq!(Agpu::AbstractMatrix)
+# function qrq!(Agpu::AbstractMatrix)
 
-    A = collect(Agpu)
-    n = min(size(A)...)
-    LAPACK.orgqr!(LAPACK.geqrf!(A)...)
-    copy!(Agpu, A)
-    if n < size(A, 2)
-        Agpu[:, 1:n]
-    else
-        Agpu
-    end
+#     A = collect(Agpu)
+#     n = min(size(A)...)
+#     LAPACK.orgqr!(LAPACK.geqrf!(A)...)
+#     copy!(Agpu, A)
+#     if n < size(A, 2)
+#         Agpu[:, 1:n]
+#     else
+#         Agpu
+#     end
 
-end
+# end
 
 """
 Separate a MPS tensor A into a right orthonormal tensor AR and a bond
