@@ -156,6 +156,7 @@ function time_evolve()
     close(file)
     rho = Array{TA{TN, 3}, 1}(na)
     copy!(rho, rho_temp)
+    dims = mpsdims(rho_temp)
     rho_temp = 0
 
     # temporary arrays for time evolution
