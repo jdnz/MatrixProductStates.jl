@@ -146,13 +146,13 @@ function time_evolve()
     t = 0.0:dt:t_fin
     t_m = t[1:measure_int:end]
     tstep = length(t) - 1
-    times = zeros(tstep,4)
+    times = zeros(tstep, 4)
 
     file = matopen(string(base_filename,"_temp.mat"),"r")
     rho_temp = read(file, "rho")
     tr_rho = read(file, "tr_rho")
     I_r = read(file, "I_r")
-    times[2] = read(file, "times")
+    times[1, :] = read(file, "times")
     i_last = read(file, "i_last")
     close(file)
     rho = Array{TA{TN, 3}, 1}(na)
