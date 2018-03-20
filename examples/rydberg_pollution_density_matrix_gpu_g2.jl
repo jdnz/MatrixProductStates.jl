@@ -17,7 +17,7 @@ const rj = collect(1.0:na) #sort!(rand(na)*na) # atom positions
 const k_in = k_wg # pump beam wavevector 
 const gam_exp = 2*pi*6.065e6 # spontaneous emmision rate
 const f_amp_exp = sqrt.([0.3657, 2.9549, 7.7137, 10.0961]/gam_exp/1e-6)
-const f_amp = f_amp_exp[3]
+const f_amp = f_amp_exp[2]
 
 #Rydberg specific parameters
 const om = 10.0/6.065/2.0 # control beam Rabi frequency
