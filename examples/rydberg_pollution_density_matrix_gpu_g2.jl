@@ -81,7 +81,7 @@ const gam_ee = 0.0
 const dt = 0.01
 const t_fin = 60
 const d = 4
-const d_max = 180
+const d_max = 200
 const measure_int = 5
 const path_data = string(homedir(), "/data/")
 const base_filename = string(path_data,"Ryd_Dens_N",na,"_D",d_max,
@@ -203,7 +203,7 @@ function time_evolve()
 
         end  
 
-   end
+    end
 
     # saving final data to file
     write_data_file(string(base_filename,".mat"), tstep, t_m, tr_rho,
