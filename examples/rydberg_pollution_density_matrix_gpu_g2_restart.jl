@@ -16,9 +16,8 @@ const k_wg = 0.5*pi # waveguide wavevector
 const rj = collect(1.0:na) #sort!(rand(na)*na) # atom positions
 const k_in = k_wg # pump beam wavevector 
 const gam_exp = 2*pi*6.065e6 # spontaneous emmision rate
-const f_amp_exp = sqrt.([0.0589,0.0721,0.0995,0.1637,0.3081,0.6395,1.2121,1.8898, 
-    2.6039,4.2050,7.1291,10.4823,17.0816,27.1592,42.8378,71.7874]/gam_exp/1e-6)
-const f_amp = f_amp_exp[11]
+const f_amp_exp = sqrt.([0.3657, 2.9549, 7.7137, 10.0961]/gam_exp/1e-6)
+const f_amp = f_amp_exp[2]
 
 #Rydberg specific parameters
 const om = 10.0/6.065/2.0 # control beam Rabi frequency
@@ -80,35 +79,20 @@ const gam_ee = 0.0
 
 # simulation parameters
 const dt = 0.01
-const t_fin = 170
+const t_fin = 60
 const d = 4
-const d_max = 180
+const d_max = 200
 const measure_int = 5
 const path_data = string(homedir(), "/data/")
 const base_filename = string(path_data,"Ryd_Dens_N",na,"_D",d_max,
     "_Tf",t_fin,"_f",round(f_amp,3),"_dt",dt,"_three_exp_float32_gsp",
     round(gam_sp,3),"_gpg",round(gam_pg,3))
-
+const g2_filename = string(base_filename, "_g2")
 
 # input pulse envelope
 function f(t)
 
-    trise = 0.8e-6*gam_exp
-    tup = 2e-6*gam_exp
-
-    if t < 0
-        envelope = 0.0
-    elseif t < trise
-        envelope = (1.0 + cos(pi*(t - trise)/trise))/2
-    elseif t <= tup + trise
-        envelope = 1.0
-    elseif t <= 2*trise + tup
-        envelope = (1.0 + cos(pi*(t - tup - trise)/trise))/2
-    else
-        envelope = 0.0
-    end
-
-    f_amp*sqrt(envelope)
+    f_amp
 
 end
 
@@ -148,7 +132,7 @@ function time_evolve()
     tstep = length(t) - 1
     times = zeros(tstep, 4)
 
-    file = matopen(string(base_filename, "_temp.mat"), "r")
+    file = matopen(string(g2_filename, "_temp.mat"), "r")
     rho_temp = read(file, "rho")
     tr_rho = read(file, "tr_rho")
     I_r = read(file, "I_r")
@@ -185,15 +169,9 @@ function time_evolve()
     println(typeof(env1))
     println(typeof(envop))
 
-    # time evolution
+    # second time evolution
     for i = (i_last + 1):tstep
         time_in = time()
-
-        # update time-evolution operator
-        update_L_Ryd!(L1, 1, dt/2, t[i])
-        update_L_Ryd!(L2, 0, 1, t[i] + dt/2)
-        update_L_Ryd!(L3, 1, dt/2, t[i + 1])
-		times[i,1] = time() - time_in
 
         # Runge-Kutta 4th order time step
         RK4stp_apply_H_half!(dt, L, rho, rho1, rho2, rho3, env1, env2, env3, envop)
@@ -202,34 +180,22 @@ function time_evolve()
         # measurements (every measure_int time steps)
         if rem(i, measure_int) == 0
             mind = div(i, measure_int) + 1
-            # atomic state populations
             tr_rho[mind] = scal_prod_no_conj(IDlmps, rho)
-            # output right field update
-            ERmpo[1][1, :, 2, :] = f(t[i + 1])*id +
-                im*sqrt(gam_1d[1]/2)*exp(-im*k_wg*rj[1])*hge
-            IRupdate =  apply_site_MPOtoMPO(ERmpo[1], conj_site_mpo(ERmpo[1]))
-            IRlmps[1] = mpo_to_mps_site(IRupdate)
-            # output field measurement
             I_r[mind] = scal_prod_no_conj(IRlmps,rho)
             times[i, 3] = time() - times[i, 2] - times[i, 1] - time_in
         end
         
         # saving temporary file
         if rem(i, measure_int*20) == 0
-            write_data_file(string(base_filename,"_temp.mat"), i, t_m, tr_rho, I_r, rho, times)
-
+            write_data_file(string(g2_filename, "_temp.mat"), i, t_m, tr_rho,
+                            I_r, rho, times)
         end  
 
-        # saving mid pulse data
-        if i == 10000
-            write_data_file(string(base_filename,"_mid_pulse.mat"), i, t_m, tr_rho, I_r, rho, times)
-       end  
-
     end
-
-    # saving to final data to file
-    write_data_file(string(base_filename,".mat"), tstep, t_m, tr_rho, I_r, rho, times)
-
+    
+    # saving final data to file
+    write_data_file(string(g2_filename, ".mat"), tstep, t_m, tr_rho,
+                            I_r, rho, times)
 
 end
 
