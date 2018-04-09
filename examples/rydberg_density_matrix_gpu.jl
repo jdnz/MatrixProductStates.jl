@@ -26,8 +26,10 @@ const k_c = 0.0 # control wavevector
 const del_s = 0.0 # two photon detuning from s level
 
 # rmax = 20 na = 70 
-const uu = [524.328+89.9671im, 524.328-89.9671im, 649.737+219.429im, 649.737-219.429im, 488.928]
-const lam = [-0.228929 + 0.189648im, -0.228929 - 0.189648im, 0.146279+0.297638im, 0.146279-0.297638im, 0.480032] 
+const uu = [274.592+501.949im, 274.592-501.949im, 458.005]
+const lam = [0.19617+0.309617im, 0.19617-0.309617im, 0.487077] 
+#const uu = [524.328+89.9671im, 524.328-89.9671im, 649.737+219.429im, 649.737-219.429im, 488.928]
+#const lam = [-0.228929 + 0.189648im, -0.228929 - 0.189648im, 0.146279+0.297638im, 0.146279-0.297638im, 0.480032] 
 
 # rmax = 30 na = 60 
 #uu = [1055.32, 1156.39 + 264.599im, 1156.39 - 264.599im, 781.661]
@@ -78,13 +80,13 @@ const gam_ee = 0.0
 
 # simulation parameters
 const dt = 0.01
-const t_fin = 60.0
+const t_fin = 54.0
 const d = 3
-const d_max = 100
+const d_max = 180
 const measure_int = 5
-const path_data = "/home/jdouglas/data/"
+const path_data = string(homedir(), "/data/")
 const base_filename = string(path_data, "Ryd_Dens_N", na, "_D", d_max,
-    "_Tf", t_fin, "_f", round(f_amp, 3), "_dt", dt, "_five_exp")
+    "_Tf", t_fin, "_f", round(f_amp, 3), "_dt", dt, "_three_exp_gpu_new")
 
 # input pulse envelope
 function f(t)
